@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
     if (!email || !password) {
       return NextResponse.json(
         { message: "Email and password are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
     if (!user) {
       return NextResponse.json(
         { message: "Invalid credentials" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
     if (password !== contactString) {
       return NextResponse.json(
         { message: "Invalid credentials" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
         role: user.role,
       },
       process.env.JWT_SECRET!,
-      { expiresIn: "15m" }
+      { expiresIn: "15m" },
     );
 
     // 5️⃣ Create Refresh Token
@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
     console.error("LOGIN ERROR:", error);
     return NextResponse.json(
       { message: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
