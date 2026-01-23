@@ -14,4 +14,7 @@ const ClassSchema = new Schema(
   { timestamps: true },
 );
 
+ClassSchema.index({ courseId: 1, year: 1, section: 1 }, { unique: true });
+ClassSchema.index({ name: 1 });
+
 export default models.Class || model("Class", ClassSchema);

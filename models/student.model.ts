@@ -29,4 +29,8 @@ const StudentSchema = new Schema(
   { timestamps: true },
 );
 
+StudentSchema.index({ classId: 1 });
+StudentSchema.index({ email: 1 });
+StudentSchema.index({ contact: 1 });
+
 export default models.Student || model("Student", StudentSchema);

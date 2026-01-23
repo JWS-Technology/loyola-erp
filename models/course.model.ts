@@ -13,4 +13,7 @@ const CourseSchema = new Schema(
   { timestamps: true },
 );
 
+CourseSchema.index({ name: 1 });
+CourseSchema.index({ streamId: 1 });
+
 export default models.Course || model("Course", CourseSchema);

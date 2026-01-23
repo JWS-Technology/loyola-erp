@@ -18,4 +18,7 @@ const StaffSchema = new Schema(
   { timestamps: true },
 );
 
+StaffSchema.index({ email: 1 }, { unique: true });
+StaffSchema.index({ role: 1 });
+
 export default models.Staff || model("Staff", StaffSchema);

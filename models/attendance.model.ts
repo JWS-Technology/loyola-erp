@@ -47,4 +47,8 @@ const AttendanceSchema = new Schema<IAttendance>(
   },
 );
 
+AttendanceSchema.index({ classId: 1, date: 1, period: 1 }, { unique: true });
+
+AttendanceSchema.index({ staffId: 1, date: 1 });
+
 export default mongoose.model<IAttendance>("Attendance", AttendanceSchema);
