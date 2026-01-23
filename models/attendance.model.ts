@@ -15,7 +15,7 @@ const AttendanceSchema = new Schema<IAttendance>(
   {
     staffId: {
       type: Schema.Types.ObjectId,
-      ref: "Faculty",
+      ref: "Staff",
       required: true,
     },
 
@@ -50,14 +50,11 @@ const AttendanceSchema = new Schema<IAttendance>(
       },
     ],
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // ✅ Prevent duplicate attendance
-AttendanceSchema.index(
-  { class: 1, date: 1, hour: 1 },
-  { unique: true }
-);
+AttendanceSchema.index({ class: 1, date: 1, hour: 1 }, { unique: true });
 
 // ✅ Faster staff queries
 AttendanceSchema.index({ staffId: 1, date: 1 });
