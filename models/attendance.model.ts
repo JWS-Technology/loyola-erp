@@ -1,13 +1,14 @@
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IAttendance extends Document {
+  staffId: mongoose.Types.ObjectId;
   class: mongoose.Types.ObjectId;
-  staffId: mongoose.Types.ObjectId; // Faculty / Staff
   date: Date;
-  hour: number; // Period / Hour number (1–8 etc)
-  records: mongoose.Types.ObjectId;
-  createdAt: Date;
-  updatedAt: Date;
+  hour: number;
+  records: {
+    student: mongoose.Types.ObjectId;
+    status: "P" | "A";
+  }[];
 }
 
 const AttendanceSchema = new Schema<IAttendance>(
@@ -24,31 +25,42 @@ const AttendanceSchema = new Schema<IAttendance>(
       required: true,
     },
 
-    hour: {
-      type: Number,
-      required: true,
-    },
-    records: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: "Student",
-        required: true,
-        status: ["P", "A"],
-      },
-    ],
-
     date: {
       type: Date,
       required: true,
     },
+
+    hour: {
+      type: Number,
+      required: true,
+    },
+
+    records: [
+      {
+        student: {
+          type: Schema.Types.ObjectId,
+          ref: "Student",
+          required: true,
+        },
+        status: {
+          type: String,
+          enum: ["P", "A"],
+          required: true,
+        },
+      },
+    ],
   },
-  {
-    timestamps: true,
-  },
+  { timestamps: true }
 );
 
-AttendanceSchema.index({ classId: 1, date: 1, period: 1 }, { unique: true });
+// ✅ Prevent duplicate attendance
+AttendanceSchema.index(
+  { class: 1, date: 1, hour: 1 },
+  { unique: true }
+);
 
+// ✅ Faster staff queries
 AttendanceSchema.index({ staffId: 1, date: 1 });
 
-export default mongoose.model<IAttendance>("Attendance", AttendanceSchema);
+export default mongoose.models.Attendance ||
+  mongoose.model<IAttendance>("Attendance", AttendanceSchema);
