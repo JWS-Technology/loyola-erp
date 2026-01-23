@@ -1,25 +1,33 @@
-import { NextRequest, NextResponse } from "next/server";
-import Attendance from "@/models/attendance.model";
+import { NextResponse } from "next/server";
 import dbConnect from "@/config/dbConnect";
+import Attendance from "@/models/attendance.model";
 
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   try {
     await dbConnect();
 
     const body = await req.json();
-    const { staffId, class: classId, date, hour, records } = body;
 
-    // Basic validation
-    if (!staffId || !classId || !date || !hour || !records?.length) {
+    const {
+      class: classId,
+      date,
+      hour,
+      records,
+    } = body;
+
+    // 🔐 TEMP: Replace later with auth user
+    const staffId = "6972fef1bb343c6be9ed98ac"; // dummy ObjectId
+
+    // ✅ Validation
+    if (!classId || !date || !hour || !records?.length) {
       return NextResponse.json(
-        { message: "Missing required fields" },
-        { status: 400 },
+        { success: false, error: "Missing required fields" },
+        { status: 400 }
       );
     }
 
-    // Optional: prevent duplicate attendance
+    // ❌ Prevent duplicate attendance
     const existing = await Attendance.findOne({
-      staffId,
       class: classId,
       date: new Date(date),
       hour,
@@ -27,28 +35,43 @@ export async function POST(req: NextRequest) {
 
     if (existing) {
       return NextResponse.json(
-        { message: "Attendance already exists for this hour" },
-        { status: 409 },
+        { success: false, error: "Attendance already marked" },
+        { status: 409 }
       );
     }
 
+    // ✅ Create attendance
     const attendance = await Attendance.create({
       staffId,
       class: classId,
-      date,
+      date: new Date(date),
       hour,
       records,
     });
 
     return NextResponse.json(
-      { message: "Attendance created", attendance },
-      { status: 201 },
+      {
+        success: true,
+        message: "Attendance marked successfully",
+        data: attendance,
+      },
+      { status: 201 }
     );
+
   } catch (error: any) {
-    console.error("Attendance error:", error);
+    console.error("Attendance Error:", error);
+
+    // Mongo duplicate index error safety
+    if (error.code === 11000) {
+      return NextResponse.json(
+        { success: false, error: "Attendance already exists" },
+        { status: 409 }
+      );
+    }
+
     return NextResponse.json(
-      { message: "Internal server error" },
-      { status: 500 },
+      { success: false, error: "Failed to mark attendance" },
+      { status: 500 }
     );
   }
 }
