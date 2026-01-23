@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import Attendance from "@/models/attendance.model";
 import dbConnect from "@/config/dbConnect";
+import "@/models/student.model";
+import "@/models/class.model";
+import "@/models/staff.model";
 
 export async function GET(req: NextRequest) {
   try {
     await dbConnect();
-
     const { searchParams } = new URL(req.url);
 
     const classId = searchParams.get("class");
