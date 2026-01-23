@@ -2,14 +2,17 @@
 
 import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState, useMemo } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import axios from "axios";
 import {
   Calendar,
   Clock,
   ChevronLeft,
   CheckCheck,
   Loader2,
-  FileText
+  FileText,
+  X,
+  User,
 } from "lucide-react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -37,43 +40,50 @@ export default function AttendancePage() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
+  // URL Params
   const course = searchParams.get("course");
   const year = searchParams.get("year");
   const classId = searchParams.get("class");
   const date = searchParams.get("date");
   const hour = searchParams.get("hour");
 
+  // State
   const [students, setStudents] = useState<any[]>([]);
   const [records, setRecords] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
+  // Derived Stats
   const stats = useMemo(() => {
     const total = records.length;
     const present = records.filter((r) => r.status === "P").length;
     return { total, present, absent: total - present };
   }, [records]);
 
+  // Fetch Students
   useEffect(() => {
     if (!classId || !date || !hour) return;
 
-    // ✅ ONLY CHANGE IS HERE
-    fetch(
-      `/api/data/student/get-student?class=${classId}&course=${course}&year=${year}`
-    )
-      .then((res) => res.json())
-      .then((data) => {
-        setStudents(data.data || []);
+    axios
+      .get(
+        `/api/data/student/get-student?class=${classId}&course=${course}&year=${year}`
+      )
+      .then((res) => {
+        const data = res.data?.data || [];
+        setStudents(data);
+        // Default everyone to 'P'
         setRecords(
-          (data.data || []).map((s: any) => ({
+          data.map((s: any) => ({
             student: s._id,
             status: "P",
           }))
         );
       })
+      .catch((err) => console.error("Fetch error:", err))
       .finally(() => setLoading(false));
   }, [classId, date, hour, course, year]);
 
+  // Handlers
   const toggleStatus = (studentId: string) => {
     setRecords((prev) =>
       prev.map((r) =>
@@ -91,32 +101,50 @@ export default function AttendancePage() {
   const getStatus = (studentId: string) =>
     records.find((r) => r.student === studentId)?.status;
 
+  // --- SUBMIT LOGIC ---
   const submitAttendance = async () => {
     if (submitting) return;
+    
+    // Safety check
+    if (!classId || !date || !hour) {
+      alert("Missing required class details.");
+      return;
+    }
+
     setSubmitting(true);
+
     try {
-      await fetch("/api/attendance", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          course,
-          year,
-          class: classId,
-          date,
-          hour,
-          records,
-        }),
-      });
-      router.push("/attendance");
-    } catch (err) {
+      // Payload matching Backend Schema strictly
+      const payload = {
+        course,
+        year,
+        class: classId,     // Backend expects 'class' field
+        date: date,         // Date string
+        hour: Number(hour), // Backend expects Number
+        records: records,
+      };
+
+      await axios.post("/api/attendance/mark-attendance", payload);
+
+      // Success
+      router.push("/attendance"); // Or wherever you want to redirect
+    } catch (err: any) {
       console.error(err);
+      
+      // Handle Duplicate Error (409)
+      if (err.response && err.response.status === 409) {
+        alert("Attendance for this hour has already been marked.");
+      } else {
+        alert("Failed to submit attendance. Please try again.");
+      }
+    } finally {
       setSubmitting(false);
     }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
       </div>
     );
@@ -124,7 +152,6 @@ export default function AttendancePage() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-32 font-sans text-gray-900">
-
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-md sticky top-0 z-20 px-4 py-4 border-b border-gray-100">
         <div className="max-w-2xl mx-auto flex items-center relative">
@@ -137,137 +164,169 @@ export default function AttendancePage() {
 
           <div className="w-full text-center">
             <h1 className="text-lg font-bold text-gray-900">Attendance</h1>
-            {/* Displaying the newly received data in the header for confirmation */}
             <div className="flex flex-col items-center justify-center gap-1 mt-1">
               <div className="flex items-center gap-2 text-xs font-semibold text-gray-800 bg-gray-100 px-2 py-0.5 rounded-md">
                 {course && <span className="uppercase">{course}</span>}
                 {year && <span>• {year} Year</span>}
               </div>
               <div className="flex items-center gap-3 text-xs text-gray-500">
-                <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {date}</span>
+                <span className="flex items-center gap-1">
+                  <Calendar className="w-3 h-3" /> {date}
+                </span>
                 <span className="text-gray-300">|</span>
-                <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> Hour {hour}</span>
+                <span className="flex items-center gap-1">
+                  <Clock className="w-3 h-3" /> Hour {hour}
+                </span>
               </div>
             </div>
           </div>
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-4 pt-6 space-y-8">
-
-        {/* Stats Dashboard */}
-        <div className="grid grid-cols-3 gap-4">
-          {/* Total Card */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 flex flex-col items-center justify-center relative overflow-hidden">
-            <div className="absolute bottom-0 left-4 right-4 h-1 bg-gray-200 rounded-full" />
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Total</span>
-            <span className="text-3xl font-bold text-gray-800">{stats.total}</span>
+      {/* Stats Bar */}
+      <div className="max-w-2xl mx-auto px-4 mt-6">
+        <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex justify-between items-center">
+          <div className="flex flex-col items-center w-1/3 border-r border-gray-100">
+            <span className="text-xs text-gray-400 font-medium uppercase tracking-wider">
+              Total
+            </span>
+            <span className="text-xl font-bold text-gray-900">
+              {stats.total}
+            </span>
           </div>
-
-          {/* Present Card */}
-          <div className="bg-emerald-50/50 rounded-xl shadow-sm border border-emerald-100 p-4 flex flex-col items-center justify-center relative overflow-hidden">
-            <div className="absolute bottom-0 left-4 right-4 h-1 bg-emerald-500 rounded-full" />
-            <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mb-1">Present</span>
-            <span className="text-3xl font-bold text-emerald-700">{stats.present}</span>
+          <div className="flex flex-col items-center w-1/3 border-r border-gray-100">
+            <span className="text-xs text-green-500 font-medium uppercase tracking-wider">
+              Present
+            </span>
+            <span className="text-xl font-bold text-green-600">
+              {stats.present}
+            </span>
           </div>
-
-          {/* Absent Card */}
-          <div className="bg-rose-50/50 rounded-xl shadow-sm border border-rose-100 p-4 flex flex-col items-center justify-center relative overflow-hidden">
-            <div className="absolute bottom-0 left-4 right-4 h-1 bg-rose-500 rounded-full" />
-            <span className="text-[10px] font-bold text-rose-600 uppercase tracking-widest mb-1">Absent</span>
-            <span className="text-3xl font-bold text-rose-700">{stats.absent}</span>
+          <div className="flex flex-col items-center w-1/3">
+            <span className="text-xs text-red-500 font-medium uppercase tracking-wider">
+              Absent
+            </span>
+            <span className="text-xl font-bold text-red-600">
+              {stats.absent}
+            </span>
           </div>
-        </div>
-
-        {/* List Header */}
-        <div className="flex items-end justify-between px-1">
-          <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Student List</h2>
-          <button
-            onClick={markAllPresent}
-            className="group flex items-center gap-2 bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-1.5 rounded-full text-xs font-semibold transition-all shadow-sm active:scale-95"
-          >
-            <CheckCheck className="w-3.5 h-3.5" />
-            Mark All Present
-          </button>
-        </div>
-
-        {/* Students List */}
-        <div className="space-y-3">
-          {students.map((s) => {
-            const status = getStatus(s._id);
-            const isPresent = status === "P";
-            const initials = s.name.split(" ").map((n: string) => n[0]).join("").substring(0, 2);
-
-            return (
-              <div
-                key={s._id}
-                className="bg-white rounded-xl border border-gray-100 shadow-sm p-3 flex items-center justify-between"
-              >
-                <div className="flex items-center gap-3">
-                  <div className={cn(
-                    "w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold shadow-sm",
-                    getAvatarColor(s.name)
-                  )}>
-                    {initials}
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-800 text-sm">{s.name}</h3>
-                    {s.rollNo && (
-                      <p className="text-[10px] text-gray-400 font-medium mt-0.5">ID: {s.rollNo}</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Custom Switch Toggle */}
-                <button
-                  onClick={() => toggleStatus(s._id)}
-                  className={cn(
-                    "relative w-24 h-8 rounded-full transition-colors duration-200 ease-in-out flex items-center px-1",
-                    isPresent ? "bg-gray-100 border border-gray-200" : "bg-gray-100 border border-gray-200"
-                  )}
-                >
-                  {/* Background Text Labels */}
-                  <div className="absolute inset-0 flex justify-between items-center px-3 text-[9px] font-bold text-gray-400 uppercase select-none pointer-events-none">
-                    <span className={cn(isPresent ? "opacity-100 text-gray-800" : "opacity-0")}>Present</span>
-                    <span className={cn(!isPresent ? "opacity-100 text-gray-500" : "opacity-0")}>Absent</span>
-                  </div>
-
-                  {/* Sliding Thumb */}
-                  <motion.div
-                    layout
-                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                    className={cn(
-                      "w-6 h-6 rounded-full shadow-md z-10",
-                      isPresent ? "bg-white ml-auto" : "bg-white"
-                    )}
-                  />
-                </button>
-              </div>
-            );
-          })}
-        </div>
-
-      </main>
-
-      {/* Footer Bar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4 pb-6 z-30">
-        <div className="max-w-2xl mx-auto flex items-center justify-between">
-          <div>
-            <p className="text-xs text-gray-400 font-medium">Summary</p>
-            <p className="text-sm font-bold text-gray-900">{Math.round((stats.present / stats.total) * 100) || 0}% Attendance</p>
-          </div>
-
-          <button
-            onClick={submitAttendance}
-            disabled={submitting}
-            className="bg-gray-900 text-white px-8 py-3 rounded-xl text-sm font-bold shadow-lg shadow-gray-200 hover:shadow-xl hover:-translate-y-0.5 transition-all active:scale-95 flex items-center gap-2"
-          >
-            {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
-            Submit
-          </button>
         </div>
       </div>
 
+      {/* Actions */}
+      <div className="max-w-2xl mx-auto px-4 mt-6 flex justify-between items-center">
+        <h2 className="text-sm font-semibold text-gray-500">Student List</h2>
+        <button
+          onClick={markAllPresent}
+          className="text-xs font-medium text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-full transition"
+        >
+          Mark All Present
+        </button>
+      </div>
+
+      {/* Student List */}
+      <div className="max-w-2xl mx-auto px-4 mt-4 space-y-3">
+        <AnimatePresence>
+          {students.map((student) => {
+            const isPresent = getStatus(student._id) === "P";
+
+            return (
+              <motion.div
+                key={student._id}
+                layout
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                onClick={() => toggleStatus(student._id)}
+                className={cn(
+                  "relative overflow-hidden cursor-pointer group rounded-xl border p-4 transition-all duration-200",
+                  isPresent
+                    ? "bg-white border-gray-100 shadow-sm hover:border-green-200"
+                    : "bg-red-50/50 border-red-100 shadow-none"
+                )}
+              >
+                <div className="flex items-center gap-4">
+                  {/* Avatar */}
+                  <div
+                    className={cn(
+                      "w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0 transition-colors",
+                      isPresent
+                        ? getAvatarColor(student.name)
+                        : "bg-red-100 text-red-600"
+                    )}
+                  >
+                    {student.name.charAt(0)}
+                  </div>
+
+                  {/* Info */}
+                  <div className="flex-1">
+                    <h3
+                      className={cn(
+                        "font-semibold text-sm transition-colors",
+                        isPresent ? "text-gray-900" : "text-red-700"
+                      )}
+                    >
+                      {student.name}
+                    </h3>
+                    <p
+                      className={cn(
+                        "text-xs mt-0.5",
+                        isPresent ? "text-gray-500" : "text-red-400"
+                      )}
+                    >
+                      {student.regno || "No Reg No"}
+                    </p>
+                  </div>
+
+                  {/* Status Indicator */}
+                  <div
+                    className={cn(
+                      "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300",
+                      isPresent
+                        ? "bg-green-100 text-green-600"
+                        : "bg-red-100 text-red-600"
+                    )}
+                  >
+                    {isPresent ? (
+                      <CheckCheck className="w-4 h-4" />
+                    ) : (
+                      <X className="w-4 h-4" />
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
+      </div>
+
+      {/* Submit Footer */}
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-100 z-30">
+        <div className="max-w-2xl mx-auto">
+          <button
+            onClick={submitAttendance}
+            disabled={submitting || students.length === 0}
+            className={cn(
+              "w-full py-3.5 rounded-xl text-white font-semibold shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 transition-all active:scale-[0.98]",
+              submitting
+                ? "bg-gray-300 cursor-not-allowed shadow-none"
+                : "bg-blue-600 hover:bg-blue-700"
+            )}
+          >
+            {submitting ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <FileText className="w-5 h-5" />
+                Submit Attendance
+              </>
+            )}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
