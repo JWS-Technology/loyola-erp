@@ -81,13 +81,13 @@ export default function AttendanceDetailsPage() {
 
     // FETCH SECTIONS ON COURSE / YEAR CHANGE
     useEffect(() => {
-        if (!form.course) return;
+        if (!form.courseId || !form.year) return;
 
         const fetchSections = async () => {
             setLoadingSections(true);
             try {
                 const res = await axios.get(
-                    `/api/data/class/get-section?courseId=${form.course}&year=${form.year}`,
+                    `/api/data/class/get-section?courseId=${form.courseId}&year=${form.year}`
                 );
                 setSections(res.data.data || []);
             } catch (err) {
@@ -98,17 +98,19 @@ export default function AttendanceDetailsPage() {
         };
 
         fetchSections();
-    }, [form.course, form.year]);
+    }, [form.courseId, form.year]);
+
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         router.push(
-            `/attendance/mark-attendance?course=${form.course}&class=${form.classId}&date=${form.date}&hour=${form.hour}&year=${form.year}`,
+            `/attendance/mark-attendance?courseId=${form.courseId}&classId=${form.classId}&date=${form.date}&hour=${form.hour}&year=${form.year}`
         );
     };
 
     const isFormValid =
-        form.course && form.classId && form.date && form.hour && form.year;
+        form.courseId && form.classId && form.date && form.hour && form.year;
+
 
     return (
         <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -147,13 +149,13 @@ export default function AttendanceDetailsPage() {
                                 <School className="absolute left-4 top-3.5 w-5 h-5 text-gray-400 group-focus-within:text-indigo-500 transition-colors" />
                                 <select
                                     required
-                                    value={form.course}
+                                    value={form.courseId}
                                     onChange={(e) =>
-                                        setForm({ ...form, course: e.target.value })
+                                        setForm({ ...form, courseId: e.target.value })
                                     }
                                     disabled={loadingCourses}
-                                    className="w-full appearance-none bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl pl-12 pr-4 py-3.5 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all cursor-pointer disabled:opacity-60"
                                 >
+
                                     {loadingCourses && (
                                         <option value="" disabled>
                                             Loading courses...

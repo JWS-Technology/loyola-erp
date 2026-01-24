@@ -8,10 +8,21 @@ import {
 } from "lucide-react";
 import axios from "axios";
 
+type Course = {
+    _id: string;
+    name: string;
+    durationYears: number;
+};
+
+type Section = {
+    _id: string;
+    name: string;
+};
+
 export default function ManagementDashboard() {
-    const [courses, setCourses] = useState([]);
-    const [availableYears, setAvailableYears] = useState([]);
-    const [sections, setSections] = useState([]);
+    const [courses, setCourses] = useState<Course[]>([]);
+    const [availableYears, setAvailableYears] = useState<string[]>([]);
+    const [sections, setSections] = useState<Section[]>([]);
 
     const [selectedCourse, setSelectedCourse] = useState("");
     const [selectedYear, setSelectedYear] = useState("");
