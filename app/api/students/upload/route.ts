@@ -42,7 +42,8 @@ function parseDate(input: string): Date {
     throw new Error(`Invalid date values: ${input}`);
   }
 
-  return new Date(yyyy, mm - 1, dd);
+  // 🔥 CREATE DATE IN UTC (NO TIMEZONE SHIFT)
+  return new Date(Date.UTC(yyyy, mm - 1, dd));
 }
 
 function normalizeRow(row: any) {
