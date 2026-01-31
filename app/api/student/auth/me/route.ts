@@ -27,11 +27,11 @@ export async function GET(req: NextRequest) {
     }
 
     const student = await Student.findById(decoded.userId)
-      .populate("classId", "name year section")
+      .populate("classId", "name year section email")
       .populate("courseId", "name")
       .populate("streamId", "name")
       .lean();
-
+    console.log(student);
     if (!student) {
       return NextResponse.json(
         { message: "Student not found" },

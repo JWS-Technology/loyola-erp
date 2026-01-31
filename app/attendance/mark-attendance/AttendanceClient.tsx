@@ -41,9 +41,10 @@ export default function AttendancePage() {
     const router = useRouter();
 
     // URL Params
-    const course = searchParams.get("course");
     const year = searchParams.get("year");
-    const classId = searchParams.get("class");
+    const courseId = searchParams.get("courseId");
+    const classId = searchParams.get("classId");
+
     const date = searchParams.get("date");
     const hour = searchParams.get("hour");
 
@@ -66,7 +67,7 @@ export default function AttendancePage() {
 
         axios
             .get(
-                `/api/data/student/get-student?class=${classId}&course=${course}&year=${year}`
+                `/api/data/student/get-student?class=${classId}&course=${courseId}&year=${year}`
             )
             .then((res) => {
                 const data = res.data?.data || [];
@@ -81,7 +82,7 @@ export default function AttendancePage() {
             })
             .catch((err) => console.error("Fetch error:", err))
             .finally(() => setLoading(false));
-    }, [classId, date, hour, course, year]);
+    }, [classId, date, hour, courseId, year]);
 
     // Handlers
     const toggleStatus = (studentId: string) => {
@@ -116,7 +117,7 @@ export default function AttendancePage() {
         try {
             // Payload matching Backend Schema strictly
             const payload = {
-                course,
+                course: courseId,
                 year,
                 class: classId,     // Backend expects 'class' field
                 date: date,         // Date string
@@ -166,7 +167,7 @@ export default function AttendancePage() {
                         <h1 className="text-lg font-bold text-gray-900">Attendance</h1>
                         <div className="flex flex-col items-center justify-center gap-1 mt-1">
                             <div className="flex items-center gap-2 text-xs font-semibold text-gray-800 bg-gray-100 px-2 py-0.5 rounded-md">
-                                {course && <span className="uppercase">{course}</span>}
+                                {courseId && <span className="uppercase">{courseId}</span>}
                                 {year && <span>• {year} Year</span>}
                             </div>
                             <div className="flex items-center gap-3 text-xs text-gray-500">

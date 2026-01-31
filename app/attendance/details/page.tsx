@@ -233,7 +233,7 @@ export default function AttendanceDetailsPage() {
                             <div className="relative group">
                                 <CalendarDays className="absolute left-4 top-3.5 w-5 h-5 text-gray-400 group-focus-within:text-indigo-500 transition-colors" />
                                 <input
-                                    disabled
+                                    // disabled
                                     type="date"
                                     required
                                     value={form.date}
