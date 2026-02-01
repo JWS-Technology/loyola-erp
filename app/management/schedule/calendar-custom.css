@@ -1,0 +1,49 @@
+/* Custom Styles for React Calendar */
+.react-calendar {
+  border: none !important;
+  font-family: inherit;
+  width: 100% !important;
+}
+
+.react-calendar__navigation button {
+  font-weight: bold;
+  font-size: 1rem;
+}
+
+.react-calendar__month-view__weekdays {
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #9ca3af; /* Gray-400 */
+}
+
+.react-calendar__tile {
+  padding: 10px 6px;
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+/* Selected Date */
+.react-calendar__tile--active {
+  background: #1e3a8a !important; /* Blue-900 */
+  color: white !important;
+}
+
+/* Today */
+.react-calendar__tile--now {
+  background: #eff6ff;
+  color: #1e3a8a;
+  border: 1px solid #bfdbfe;
+}
+
+/* Custom Holiday Class (Red background) */
+.react-calendar__tile--holiday {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+/* Custom Exception Class (Yellowish) */
+.react-calendar__tile--exception {
+  background: #fffbeb;
+  color: #b45309;
+}
